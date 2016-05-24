@@ -1,4 +1,4 @@
 package ai.colosseum.model
 
-abstract class Id[T](value: Long)
+case class Id[T](value: Int)
 
