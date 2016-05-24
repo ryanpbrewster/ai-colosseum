@@ -1,20 +1,29 @@
 package ai.colosseum.game.tictactoe
 
-import ai.colosseum.model.Id
+import ai.colosseum.game.tictactoe.TicTacToe.XO.{O, X}
+import ai.colosseum.model.{Game, Id}
 
-object TicTacToe {
+object TicTacToe extends Game {
+  type P = Player
+  type M = Match
   val name = "tic-tac-toe"
-  def play(px: Player, po: Player) = {
-    val players = Map(
-      Id[Player](0) -> px,
-      Id[Player](1) -> po
-    )
-    Iterator.iterate(Match.empty(0, xs = Id(0), os = Id(1))) { m =>
+  def play(players: Map[Id[Player], Player]): Match = {
+    require(players.size == 2 && players.values.map(_.symbol).toSet == XO.all)
+    val xs = players.collectFirst { case (id ,pl) if pl.symbol == X => id }.get
+    val os = players.collectFirst { case (id ,pl) if pl.symbol == O => id }.get
+    Iterator.iterate(Match.empty(0, xs = xs, os = os)) { m =>
       m.copy(state = m.state.evolve(
         pl = m.currentPlayer,
         p = players(m.currentPlayer).play(m.state)
       ))
     }.dropWhile(_.state.isPlayable).next()
+  }
+  def score(m: Match): Map[Id[Player], Int] = {
+    m.state.board.winner match {
+      case None => Map(m.xs -> 1, m.os -> 1)
+      case Some(X) => Map(m.xs -> 3, m.os -> 0)
+      case Some(O) => Map(m.os -> 3, m.xs -> 0)
+    }
   }
 
   case class Position(row: Int, col: Int)
@@ -47,11 +56,14 @@ object TicTacToe {
   case class Play(pos: Position, symbol: XO)
 
   sealed trait XO
-  object X extends XO
-  object O extends XO
+  object XO {
+    object X extends XO
+    object O extends XO
+    val all: Set[XO] = Set(X, O)
+  }
 
 
-  abstract class Player {
+  abstract class Player(val symbol: XO) {
     def play(s: State): Play
   }
 
